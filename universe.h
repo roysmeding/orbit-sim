@@ -23,6 +23,8 @@ struct universe {
 
 struct universe *universe_new(size_t num_planets, time_t time);
 void universe_free(struct universe *universe);
+
 struct universe *universe_load(const char* filename);
+void universe_dump(FILE *dest, struct universe *universe);
 
 #endif
