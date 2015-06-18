@@ -1,14 +1,17 @@
-CC     := clang
-CFLAGS += -Wall -Wextra -std=c99
+CC     := gcc
+CFLAGS += -Wall -Wextra -std=c99 -O3 -fopt-info-all=opts
 
-all : tests
+all : orbit
 
 clean :
-	rm -f test_universe
+	rm -f orbit test_universe
 
 tests : test_universe
 
 .PHONY: all clean tests
 
-test_universe : test_universe.c universe.h universe.c
-	${CC} ${CFLAGS} -o $@ test_universe.c universe.c
+orbit : orbit.c universe.h universe.c sim.c
+	${CC} ${CFLAGS} -o $@ orbit.c universe.c sim.c -lm
+
+test_universe : test_universe.c universe.h universe.c sim.c
+	${CC} ${CFLAGS} -o $@ test_universe.c universe.c sim.c -lm

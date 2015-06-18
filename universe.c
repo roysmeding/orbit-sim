@@ -14,7 +14,7 @@ void planet_init(struct planet *planet, char *name, double mass, double radius, 
 	planet->vx = vx, planet->vy = vy, planet->vz = vz;
 }
 
-struct universe *universe_new(size_t num_planets, time_t time) {
+struct universe *universe_new(size_t num_planets, double time) {
 	struct universe *universe = malloc(sizeof(struct universe));
 	universe->time = time;
 	universe->num_planets = num_planets;
@@ -43,7 +43,7 @@ struct universe *universe_load(const char* filename) {
 
 	fscanf(infile, "%zu\n", &num_planets);
 
-	universe = universe_new(num_planets, mktime(&tm));
+	universe = universe_new(num_planets, (double) mktime(&tm));
 
 	for(size_t planet = 0; planet < num_planets; planet++) {
 		int c;
