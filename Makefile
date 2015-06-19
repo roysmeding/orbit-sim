@@ -1,5 +1,5 @@
 CC     := gcc
-CFLAGS += -Wall -Wextra -std=c99 -O3 -fopt-info-all=opts
+CFLAGS += -Wall -Wextra -std=c99 -g -march=sandybridge -mtune=sandybridge -O3 -ffast-math -fprefetch-loop-arrays -funroll-loops -fvariable-expansion-in-unroller -ftree-loop-distribution -floop-nest-optimize -fselective-scheduling -fsel-sched-pipelining -fsel-sched-pipelining-outer-loops
 
 all : orbit
 
