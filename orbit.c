@@ -14,10 +14,10 @@ static const unsigned int NUM_ITERATIONS = 3650000;
 static const unsigned int OUTPUT_INTERVAL = 10;
 
 struct pstate {
+	vec4 pos;
 	double time;
 	size_t index;
-	double x, y, z;
-};
+} __attribute__ ((aligned (32)));
 
 int main(__attribute__((unused)) int argc, __attribute__((unused))char **argv) {
 	// read data file
@@ -31,7 +31,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused))char **argv) {
 	// data buffer
 	fprintf(stderr, "Allocating data buffer...\n");
 	size_t num_pstate = universe->num_planets * NUM_ITERATIONS/OUTPUT_INTERVAL;
-	struct pstate *history = malloc(num_pstate * sizeof(struct pstate));
+	struct pstate *history = aligned_alloc(PLANET_ALIGN, num_pstate * sizeof(struct pstate));
 
 	fprintf(stderr, "Starting run...\n");
 	
@@ -49,9 +49,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused))char **argv) {
 
 				curstate->time  = universe->time;
 				curstate->index = planet;
-				curstate->x     = p->x;
-				curstate->y     = p->y;
-				curstate->z     = p->z;
+				curstate->pos   = p->pos;
 			}
 		}
 	}
@@ -72,7 +70,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused))char **argv) {
 		for(size_t i=0; i<num_pstate; i++) {
 			fprintf(outfile, "%le" "\t%zd" "\t%le\t%le\t%le" "\n",
 					history[i].time, history[i].index,
-					history[i].x, history[i].y, history[i].z
+					history[i].pos[0], history[i].pos[1], history[i].pos[2]
 				);
 		}
 

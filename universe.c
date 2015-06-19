@@ -10,15 +10,15 @@ void planet_init(struct planet *planet, char *name, double mass, double radius, 
 	planet->mass   = mass;
 	planet->radius = radius;
 
-	planet->x  =  x, planet->y  =  y, planet->z  =  z;
-	planet->vx = vx, planet->vy = vy, planet->vz = vz;
+	planet->pos[0] =  x, planet->pos[1] =  y, planet->pos[2] =  z;
+	planet->vel[0] = vx, planet->vel[1] = vy, planet->vel[2] = vz;
 }
 
 struct universe *universe_new(size_t num_planets, double time) {
-	struct universe *universe = malloc(sizeof(struct universe));
+	struct universe *universe = aligned_alloc(PLANET_ALIGN, sizeof(struct universe));
 	universe->time = time;
 	universe->num_planets = num_planets;
-	universe->planets = malloc(num_planets * sizeof(struct planet));
+	universe->planets = aligned_alloc(PLANET_ALIGN, num_planets * sizeof(struct planet));
 
 	return universe;
 }
@@ -99,8 +99,8 @@ void universe_dump(FILE *dest, struct universe *universe) {
 				"\t% 22.15le" "\t% 22.15le" "\t% 22.15le" "\n",
 				planet+1, p->name,
 				p->mass, p->radius,
-				p->x,  p->y,  p->z,
-				p->vx, p->vy, p->vz
+				p->pos[0], p->pos[1], p->pos[2],
+				p->vel[0], p->vel[1], p->vel[2]
 			);
 	}
 }

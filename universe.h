@@ -4,15 +4,19 @@
 #include <stdint.h>
 #include <stdio.h>
 
+typedef double vec4 __attribute__ ((vector_size (32))) __attribute__ ((aligned (32)));
+
+static const size_t PLANET_ALIGN = 32;
+
 /* Basic data management */
 struct planet {
+	vec4 pos;	// position
+	vec4 vel;	// velocity
+	vec4 acc;	// acceleration
 	char *name;
-	double  x,  y,  z;	// position
-	double vx, vy, vz;	// velocity
-	double ax, ay, az;	// acceleration
 	double mass;
 	double radius;
-} ;
+} __attribute__ ((aligned (32)));
 
 void planet_init(struct planet *planet, char *name, double mass, double radius, double x, double y, double z, double vx, double vy, double vz);
 
