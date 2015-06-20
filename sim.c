@@ -33,7 +33,7 @@ void universe_step(struct universe *universe, double dt) {
 	compute_accelerations(universe);
 
 	// integrate velocities
-	for(size_t planet = 1; planet < universe->num_planets; planet++) {
+	for(size_t planet = 0; planet < universe->num_planets; planet++) {
 		struct planet *p = &universe->planets[planet];
 		p->vel += p->acc * dt;
 	}
@@ -41,7 +41,7 @@ void universe_step(struct universe *universe, double dt) {
 	compute_accelerations(universe);
 
 	// integrate positions
-	for(size_t planet = 1; planet < universe->num_planets; planet++) {
+	for(size_t planet = 0; planet < universe->num_planets; planet++) {
 		struct planet *p = &universe->planets[planet];
 		p->pos += p->vel * dt;
 	}
