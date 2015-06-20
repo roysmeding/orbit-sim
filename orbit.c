@@ -60,6 +60,10 @@ int main(__attribute__((unused)) int argc, __attribute__((unused))char **argv) {
 
 		double time_taken = (end.time - start.time) + (end.millitm - start.millitm)*1e-3;
 
+		fprintf(stderr, "Final state:\n");
+		universe_dump(stderr, universe);
+
+
 		fprintf(stderr, "%d iterations (%.2lf days) in %lf s = %lf it/s\n", NUM_ITERATIONS, NUM_ITERATIONS*DT, time_taken, NUM_ITERATIONS/time_taken);
 	}
 
