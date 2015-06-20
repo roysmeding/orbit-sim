@@ -20,11 +20,11 @@ static inline void compute_accelerations(struct universe *universe) {
 			vec4 d  = p2->pos - p1->pos;
 			vec4 d2 = d*d;
 			double dist2 = d2[0]+d2[1]+d2[2];
-			double ai = G * p2->mass / (dist2*sqrt(dist2));
+			double ai = G / (dist2*sqrt(dist2));
 			vec4 da = ai * d;
 
-			p1->acc += da;
-			p2->acc -= da;
+			p1->acc += da * p2->mass;
+			p2->acc -= da * p1->mass;
 		}
 	}
 }
@@ -32,20 +32,23 @@ static inline void compute_accelerations(struct universe *universe) {
 void universe_step(struct universe *universe, double dt) {
 	compute_accelerations(universe);
 
-	// integrate velocities
 	for(size_t planet = 0; planet < universe->num_planets; planet++) {
 		struct planet *p = &universe->planets[planet];
 		p->vel += p->acc * dt;
-	}
-
-	compute_accelerations(universe);
-
-	// integrate positions
-	for(size_t planet = 0; planet < universe->num_planets; planet++) {
-		struct planet *p = &universe->planets[planet];
 		p->pos += p->vel * dt;
 	}
-
+/*
+	// normalize everything so the first planet is in the middle again
+	{
+		vec4 firstpos = universe->planets[0].pos;
+		vec4 firstvel = universe->planets[0].vel;
+		for(size_t planet = 0; planet < universe->num_planets; planet++) {
+			struct planet *p = &universe->planets[planet];
+			p->pos -= firstpos;
+			p->vel -= firstvel;
+		}
+	}
+*/
 	// update time
 	universe->time += dt;
 }

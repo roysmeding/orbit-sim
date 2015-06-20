@@ -9,9 +9,9 @@
 static const char UNIVERSE_FILE[] = "universe.txt";
 static const char RESULT_FILE[]   = "results.txt";
 
-static const double DT = 0.1;	// 1 day
-static const unsigned int NUM_ITERATIONS = 3650000;
-static const unsigned int OUTPUT_INTERVAL = 10;
+static const double DT = 0.001;	// days
+static const unsigned int NUM_ITERATIONS = 365000;
+static const unsigned int OUTPUT_INTERVAL = 1000;
 
 struct pstate {
 	vec4 pos;
