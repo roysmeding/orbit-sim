@@ -1,6 +1,8 @@
-CC     := gcc
-CFLAGS += -Wall -Wextra -std=c11 -g -march=sandybridge -mtune=sandybridge -O3
-CFLAGS += -ffast-math -fprefetch-loop-arrays -funroll-loops -fvariable-expansion-in-unroller -ftree-loop-distribution -floop-nest-optimize -fselective-scheduling -fsel-sched-pipelining -fsel-sched-pipelining-outer-loops
+CC     := clang
+CFLAGS += -Wall -Wextra -std=gnu11 -g
+CFLAGS += -march=native
+#CFLAGS += -Wall -Wextra -std=gnu11 -g -march=sandybridge -mtune=sandybridge -O3
+#CFLAGS += -ffast-math -funroll-loops -fprefetch-loop-arrays  -fvariable-expansion-in-unroller -ftree-loop-distribution -floop-nest-optimize -fselective-scheduling -fsel-sched-pipelining -fsel-sched-pipelining-outer-loops
 
 all : orbit
 
