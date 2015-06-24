@@ -1,5 +1,5 @@
 CC     := clang
-CFLAGS += -Wall -Wextra -std=gnu11 -g
+CFLAGS += -Wall -Wextra -std=gnu11 -O3
 CFLAGS += -march=native
 #CFLAGS += -Wall -Wextra -std=gnu11 -g -march=sandybridge -mtune=sandybridge -O3
 #CFLAGS += -ffast-math -funroll-loops -fprefetch-loop-arrays  -fvariable-expansion-in-unroller -ftree-loop-distribution -floop-nest-optimize -fselective-scheduling -fsel-sched-pipelining -fsel-sched-pipelining-outer-loops
