@@ -1,15 +1,15 @@
 #include <math.h>
-
 #include "universe.h"
 
 static const double G = 1.4886546E-28;	// gravitational constant [AU^3 Gg^-1 day^-2]
 
-#define veccast(v) ((vec4) {v,v,v,v})
+#define veccastd(v) ((vec4d) {(v),(v),(v),(v)})
+#define veccastf(v) ((vec4f) {(v),(v),(v),(v)})
 
 static inline void compute_accelerations(struct	universe *universe) {
 	// clear accelerations
 	for(size_t planet = 0; planet < universe->num_planets; planet++)
-		universe->planets[planet].acc = (vec4) { 0., 0., 0., 0. };
+		universe->planets[planet].acc = (vec4f) { 0., 0., 0., 0. };
 
 	// accumulate accelerations
 	for(size_t planet = 1; planet < universe->num_planets; planet++) {
@@ -19,14 +19,14 @@ static inline void compute_accelerations(struct	universe *universe) {
 			struct planet *p2 = &universe->planets[other_planet];
 
 			// Newton's law of universal gravitation
-			vec4 d  = p2->pos - p1->pos;
-			vec4 d2 = d*d;
-			double dist2 = d2[0]+d2[1]+d2[2];
-			double ai = G / (dist2*sqrt(dist2));
-			vec4 da = veccast(ai) * d;
+			vec4f d  = __builtin_ia32_cvtpd2ps256(p2->pos - p1->pos);
+			vec4f d2 = d * d;
+			vec4f dist2 = veccastf(d2[0]+d2[1]+d2[2]);
+			vec4f ai = veccastf(G) / (dist2 * __builtin_ia32_sqrtps(dist2));
+			vec4f da = ai * d;
 
-			p1->acc += da * veccast(p2->mass);
-			p2->acc -= da * veccast(p1->mass);
+			p1->acc += da * veccastf(p2->mass);
+			p2->acc -= da * veccastf(p1->mass);
 		}
 	}
 }
@@ -36,8 +36,8 @@ void universe_step(struct universe *universe, double dt) {
 
 	for(size_t planet = 0; planet < universe->num_planets; planet++) {
 		struct planet *p = &universe->planets[planet];
-		p->vel += p->acc * veccast(dt);
-		p->pos += p->vel * veccast(dt);
+		p->vel += __builtin_ia32_cvtps2pd256(p->acc) * veccastd(dt);
+		p->pos += p->vel * veccastd(dt);
 	}
 /*
 	// normalize everything so the first planet is in the middle again

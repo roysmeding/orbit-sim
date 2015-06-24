@@ -4,15 +4,16 @@
 #include <stdint.h>
 #include <stdio.h>
 
-typedef double vec4 __attribute__ ((vector_size (32))) __attribute__ ((aligned (32)));
+typedef double vec4d __attribute__ ((vector_size (32))) __attribute__ ((aligned (32)));
+typedef float vec4f __attribute__ ((vector_size (16))) __attribute__ ((aligned (16)));
 
 static const size_t PLANET_ALIGN = 32;
 
 /* Basic data management */
 struct planet {
-	vec4 pos;	// position
-	vec4 vel;	// velocity
-	vec4 acc;	// acceleration
+	vec4d pos;	// position
+	vec4d vel;	// velocity
+	vec4f acc;	// acceleration
 	char *name;
 	double mass;
 	double radius;

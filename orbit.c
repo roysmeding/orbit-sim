@@ -14,7 +14,7 @@ static const unsigned int NUM_ITERATIONS = 3650000;
 static const unsigned int OUTPUT_INTERVAL = 1000;
 
 struct pstate {
-	vec4 pos;
+	vec4d pos;
 	double time;
 	size_t index;
 } __attribute__ ((aligned (32)));
