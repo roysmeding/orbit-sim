@@ -10,8 +10,8 @@ void planet_init(struct planet *planet, char *name, double mass, double radius, 
 	planet->mass   = mass;
 	planet->radius = radius;
 
-	planet->pos[0] =  x, planet->pos[1] =  y, planet->pos[2] =  z;
-	planet->vel[0] = vx, planet->vel[1] = vy, planet->vel[2] = vz;
+	planet->pos[0] =  x, planet->pos[1] =  y, planet->pos[2] =  z, planet->pos[3] = 0.;
+	planet->vel[0] = vx, planet->vel[1] = vy, planet->vel[2] = vz, planet->vel[3] = 0.;
 }
 
 struct universe *universe_new(size_t num_planets, double time) {

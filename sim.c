@@ -22,14 +22,14 @@ static inline vec8f vec_4d_8f(vec4d a, vec4d b) {
 
 static inline void newton_8(struct universe *u, size_t a_idx, size_t b_start) {
 	struct planet *a  = &u->planets[a_idx];
-	struct planet *b0 = &u->planets[b_start++];
-	struct planet *b1 = &u->planets[b_start++];
-	struct planet *b2 = &u->planets[b_start++];
-	struct planet *b3 = &u->planets[b_start++];
-	struct planet *b4 = &u->planets[b_start++];
-	struct planet *b5 = &u->planets[b_start++];
-	struct planet *b6 = &u->planets[b_start++];
-	struct planet *b7 = &u->planets[b_start++];
+	struct planet *b0 = &u->planets[b_start];
+	struct planet *b1 = &u->planets[b_start+1];
+	struct planet *b2 = &u->planets[b_start+2];
+	struct planet *b3 = &u->planets[b_start+3];
+	struct planet *b4 = &u->planets[b_start+4];
+	struct planet *b5 = &u->planets[b_start+5];
+	struct planet *b6 = &u->planets[b_start+6];
+	struct planet *b7 = &u->planets[b_start+7];
 
 	// put these eight 4double vectors into four 8float vectors
 	vec8f d0 = vec_4d_8f(b0->pos - a->pos, b1->pos - a->pos);
@@ -49,13 +49,10 @@ static inline void newton_8(struct universe *u, size_t a_idx, size_t b_start) {
 	vec8f ai = veccastf8(G) / (dist * distsquared);
 
 	// shuffle ai such that each 4float in the result consists of four repeated values
-	vec8f ail = _mm256_permute2f128_ps(ai, ai, 0x00);
-	vec8f aih = _mm256_permute2f128_ps(ai, ai, 0x11);
-
-	vec8f ai0 = _mm256_permute_ps(ail, 0x00);
-	vec8f ai1 = _mm256_permute_ps(ail, 0x32);
-	vec8f ai2 = _mm256_permute_ps(aih, 0x10);
-	vec8f ai3 = _mm256_permute_ps(aih, 0x32);
+	vec8f ai0 = veccastf8_2(ai[0], ai[4]);
+	vec8f ai1 = veccastf8_2(ai[1], ai[5]);
+	vec8f ai2 = veccastf8_2(ai[2], ai[6]);
+	vec8f ai3 = veccastf8_2(ai[3], ai[7]);
 
 	// multiply all the vectors to obtain acceleration values
 	d0 = d0 * ai0;
@@ -103,7 +100,7 @@ static inline void compute_accelerations(struct	universe *universe) {
 				newton_8(universe, planet, other_planet);
 			}
 		}
-
+		
 		for(; other_planet < planet; other_planet++) {
 			struct planet *p2 = &universe->planets[other_planet];
 
