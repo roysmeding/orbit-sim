@@ -85,6 +85,53 @@ static inline void newton_8(struct universe *u, size_t a_idx, size_t b_start) {
 	b7->acc -= _mm256_extractf128_ps(d3, 1);
 }
 
+static inline void newton_4(struct universe *u, size_t a_idx, size_t b_start) {
+	struct planet *a  = &u->planets[a_idx];
+	struct planet *b0 = &u->planets[b_start];
+	struct planet *b1 = &u->planets[b_start+1];
+	struct planet *b2 = &u->planets[b_start+2];
+	struct planet *b3 = &u->planets[b_start+3];
+
+	// put these eight 4double vectors into four 8float vectors
+	vec8f d0 = vec_4d_8f(b0->pos - a->pos, b1->pos - a->pos);
+	vec8f d1 = vec_4d_8f(b2->pos - a->pos, b3->pos - a->pos);
+
+	// compute horizontal sums to yield magnitude-squared for each of the 8 vectors
+
+	vec8f _tmp = _mm256_hadd_ps(d0*d0, d1*d1);
+	vec8f distsquared = _mm256_hadd_ps(_tmp,_tmp);
+
+	// calculate the acceleration magnitude
+	vec8f dist = _mm256_sqrt_ps(distsquared);
+	vec8f ai = veccastf8(G) / (dist * distsquared);
+
+	// shuffle ai such that each 4float in the result consists of four repeated values
+	vec8f ai0 = veccastf8_2(ai[0], ai[4]);
+	vec8f ai1 = veccastf8_2(ai[1], ai[5]);
+
+	// multiply all the vectors to obtain acceleration values
+	d0 = d0 * ai0;
+	d1 = d1 * ai1;
+
+	// multiply each vector by either mass
+	vec8f aacc;
+	aacc  = d0 * veccastf8_2(b0->mass, b1->mass);
+	aacc += d1 * veccastf8_2(b2->mass, b3->mass);
+
+	vec8f am = veccastf8(a->mass);
+	d0 = d0 * am;
+	d1 = d1 * am;
+
+	// update all the total accelerations
+	a->acc  += _mm256_extractf128_ps(aacc, 0) + _mm256_extractf128_ps(aacc, 1);
+	b0->acc -= _mm256_extractf128_ps(d0, 0);
+	b1->acc -= _mm256_extractf128_ps(d0, 1);
+	b2->acc -= _mm256_extractf128_ps(d1, 0);
+	b3->acc -= _mm256_extractf128_ps(d1, 1);
+}
+
+
+
 static inline void compute_accelerations(struct	universe *universe) {
 	// clear accelerations
 	for(size_t planet = 0; planet < universe->num_planets; planet++)
@@ -99,6 +146,11 @@ static inline void compute_accelerations(struct	universe *universe) {
 			for(; other_planet < planet-8; other_planet += 8) {
 				newton_8(universe, planet, other_planet);
 			}
+		}
+		
+		if(planet > 4 && other_planet < planet-4) {
+			newton_4(universe, planet, other_planet);
+			other_planet += 4;
 		}
 		
 		for(; other_planet < planet; other_planet++) {
