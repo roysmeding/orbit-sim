@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdio.h>
 #include "immintrin.h"
 
 #include "universe.h"
@@ -20,25 +21,21 @@ static inline vec8f vec_4d_8f(vec4d a, vec4d b) {
 				      0x20);
 }
 
-static inline void newton_8(struct universe *u, size_t a_idx, size_t b_start) {
-	struct planet *a  = &u->planets[a_idx];
-	struct planet *b0 = &u->planets[b_start];
-	struct planet *b1 = &u->planets[b_start+1];
-	struct planet *b2 = &u->planets[b_start+2];
-	struct planet *b3 = &u->planets[b_start+3];
-	struct planet *b4 = &u->planets[b_start+4];
-	struct planet *b5 = &u->planets[b_start+5];
-	struct planet *b6 = &u->planets[b_start+6];
-	struct planet *b7 = &u->planets[b_start+7];
+static inline void newton_2x4(struct universe *u, size_t row, size_t col) {
+	struct planet *a0 = &u->planets[row];
+	struct planet *a1 = &u->planets[row+1];
+	struct planet *b0 = &u->planets[col];
+	struct planet *b1 = &u->planets[col+1];
+	struct planet *b2 = &u->planets[col+2];
+	struct planet *b3 = &u->planets[col+3];
 
 	// put these eight 4double vectors into four 8float vectors
-	vec8f d0 = vec_4d_8f(b0->pos - a->pos, b1->pos - a->pos);
-	vec8f d1 = vec_4d_8f(b2->pos - a->pos, b3->pos - a->pos);
-	vec8f d2 = vec_4d_8f(b4->pos - a->pos, b5->pos - a->pos);
-	vec8f d3 = vec_4d_8f(b6->pos - a->pos, b7->pos - a->pos);
+	vec8f d0 = vec_4d_8f(b0->pos - a0->pos, b0->pos - a1->pos);
+	vec8f d1 = vec_4d_8f(b1->pos - a0->pos, b1->pos - a1->pos);
+	vec8f d2 = vec_4d_8f(b2->pos - a0->pos, b2->pos - a1->pos);
+	vec8f d3 = vec_4d_8f(b3->pos - a0->pos, b3->pos - a1->pos);
 
 	// compute horizontal sums to yield magnitude-squared for each of the 8 vectors
-	
 	vec8f distsquared = _mm256_hadd_ps(
 			_mm256_hadd_ps(d0*d0, d1*d1),
 			_mm256_hadd_ps(d2*d2, d3*d3)
@@ -49,48 +46,38 @@ static inline void newton_8(struct universe *u, size_t a_idx, size_t b_start) {
 	vec8f ai = veccastf8(G) / (dist * distsquared);
 
 	// shuffle ai such that each 4float in the result consists of four repeated values
-	vec8f ai0 = veccastf8_2(ai[0], ai[4]);
-	vec8f ai1 = veccastf8_2(ai[1], ai[5]);
-	vec8f ai2 = veccastf8_2(ai[2], ai[6]);
-	vec8f ai3 = veccastf8_2(ai[3], ai[7]);
+	d0 = d0 * veccastf8_2(ai[0], ai[4]);
+	d1 = d1 * veccastf8_2(ai[1], ai[5]);
+	d2 = d2 * veccastf8_2(ai[2], ai[6]);
+	d3 = d3 * veccastf8_2(ai[3], ai[7]);
 
-	// multiply all the vectors to obtain acceleration values
-	d0 = d0 * ai0;
-	d1 = d1 * ai1;
-	d2 = d2 * ai2;
-	d3 = d3 * ai3;
-
-	// multiply each vector by either mass
+	// multiply each vector with the correct mass
 	vec8f aacc;
-	aacc  = d0 * veccastf8_2(b0->mass, b1->mass);
-	aacc += d1 * veccastf8_2(b2->mass, b3->mass);
-	aacc += d2 * veccastf8_2(b4->mass, b5->mass);
-	aacc += d3 * veccastf8_2(b6->mass, b7->mass);
+	aacc  = d0 * veccastf8(b0->mass);
+	aacc += d1 * veccastf8(b1->mass);
+	aacc += d2 * veccastf8(b2->mass);
+	aacc += d3 * veccastf8(b3->mass);
 
-	vec8f am = veccastf8(a->mass);
-	d0 = d0 * am;
-	d1 = d1 * am;
-	d2 = d2 * am;
-	d3 = d3 * am;
+	vec8f a0m = veccastf8(a0->mass), a1m = veccastf8(a1->mass);
+	vec8f b01acc = _mm256_permute2f128_ps(d0, d1, 0x20) * a0m + _mm256_permute2f128_ps(d0, d1, 0x31) * a1m;
+	vec8f b23acc = _mm256_permute2f128_ps(d2, d3, 0x20) * a0m + _mm256_permute2f128_ps(d2, d3, 0x31) * a1m;
 
 	// update all the total accelerations
-	a->acc  += _mm256_extractf128_ps(aacc, 0) + _mm256_extractf128_ps(aacc, 1);
-	b0->acc -= _mm256_extractf128_ps(d0, 0);
-	b1->acc -= _mm256_extractf128_ps(d0, 1);
-	b2->acc -= _mm256_extractf128_ps(d1, 0);
-	b3->acc -= _mm256_extractf128_ps(d1, 1);
-	b4->acc -= _mm256_extractf128_ps(d2, 0);
-	b5->acc -= _mm256_extractf128_ps(d2, 1);
-	b6->acc -= _mm256_extractf128_ps(d3, 0);
-	b7->acc -= _mm256_extractf128_ps(d3, 1);
+	a0->acc += _mm256_extractf128_ps(aacc, 0);
+	a1->acc += _mm256_extractf128_ps(aacc, 1);
+
+	b0->acc -= _mm256_extractf128_ps(b01acc, 0);
+	b1->acc -= _mm256_extractf128_ps(b01acc, 1);
+	b2->acc -= _mm256_extractf128_ps(b23acc, 0);
+	b3->acc -= _mm256_extractf128_ps(b23acc, 1);
 }
 
-static inline void newton_4(struct universe *u, size_t a_idx, size_t b_start) {
-	struct planet *a  = &u->planets[a_idx];
-	struct planet *b0 = &u->planets[b_start];
-	struct planet *b1 = &u->planets[b_start+1];
-	struct planet *b2 = &u->planets[b_start+2];
-	struct planet *b3 = &u->planets[b_start+3];
+static inline void newton_1x4(struct universe *u, size_t row, size_t column) {
+	struct planet *a  = &u->planets[row];
+	struct planet *b0 = &u->planets[column];
+	struct planet *b1 = &u->planets[column+1];
+	struct planet *b2 = &u->planets[column+2];
+	struct planet *b3 = &u->planets[column+3];
 
 	// put these eight 4double vectors into four 8float vectors
 	vec8f d0 = vec_4d_8f(b0->pos - a->pos, b1->pos - a->pos);
@@ -138,23 +125,24 @@ static inline void compute_accelerations(struct	universe *universe) {
 		universe->planets[planet].acc = (vec4f) { 0., 0., 0., 0. };
 
 	// accumulate accelerations
-	for(size_t planet = 1; planet < universe->num_planets; planet++) {
-		struct planet *p1 = &universe->planets[planet];
-		size_t other_planet;
-		other_planet = 0;
-		if(planet>8) {
-			for(; other_planet < planet-8; other_planet += 8) {
-				newton_8(universe, planet, other_planet);
+	for(size_t row = 1; row < universe->num_planets; row++) {
+		struct planet *p1 = &universe->planets[row];
+		size_t column;
+		column = 0;
+		if(row > 3) {
+			for(; column < row-3; column += 4) {
+				if(row%2 == 0) {
+					newton_2x4(universe, row, column);
+				}
+			}
+
+			for(; column < row-3; column += 4) {
+				newton_1x4(universe, row, column);
 			}
 		}
-		
-		if(planet > 4 && other_planet < planet-4) {
-			newton_4(universe, planet, other_planet);
-			other_planet += 4;
-		}
-		
-		for(; other_planet < planet; other_planet++) {
-			struct planet *p2 = &universe->planets[other_planet];
+
+		for(; column < row; column++) {
+			struct planet *p2 = &universe->planets[column];
 
 			// Newton's law of universal gravitation
 			vec4f d  = _mm256_cvtpd_ps(p2->pos - p1->pos);
