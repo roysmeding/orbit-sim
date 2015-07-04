@@ -22,12 +22,13 @@ static inline vec8f vec_4d_8f(vec4d a, vec4d b) {
 }
 
 static inline void newton_2x4(struct universe *u, size_t row, size_t col) {
-	struct planet *a0 = &u->planets[row];
-	struct planet *a1 = &u->planets[row+1];
-	struct planet *b0 = &u->planets[col];
-	struct planet *b1 = &u->planets[col+1];
-	struct planet *b2 = &u->planets[col+2];
-	struct planet *b3 = &u->planets[col+3];
+	struct body *a0 = &u->bodies[row];
+	struct body *a1 = &u->bodies[row+1];
+
+	struct body *b0 = &u->bodies[col];
+	struct body *b1 = &u->bodies[col+1];
+	struct body *b2 = &u->bodies[col+2];
+	struct body *b3 = &u->bodies[col+3];
 
 	// put these eight 4double vectors into four 8float vectors
 	vec8f d0 = vec_4d_8f(b0->pos - a0->pos, b0->pos - a1->pos);
@@ -73,11 +74,12 @@ static inline void newton_2x4(struct universe *u, size_t row, size_t col) {
 }
 
 static inline void newton_1x4(struct universe *u, size_t row, size_t column) {
-	struct planet *a  = &u->planets[row];
-	struct planet *b0 = &u->planets[column];
-	struct planet *b1 = &u->planets[column+1];
-	struct planet *b2 = &u->planets[column+2];
-	struct planet *b3 = &u->planets[column+3];
+	struct body *a  = &u->bodies[row];
+
+	struct body *b0 = &u->bodies[column];
+	struct body *b1 = &u->bodies[column+1];
+	struct body *b2 = &u->bodies[column+2];
+	struct body *b3 = &u->bodies[column+3];
 
 	// put these eight 4double vectors into four 8float vectors
 	vec8f d0 = vec_4d_8f(b0->pos - a->pos, b1->pos - a->pos);
@@ -117,18 +119,27 @@ static inline void newton_1x4(struct universe *u, size_t row, size_t column) {
 	b3->acc -= _mm256_extractf128_ps(d1, 1);
 }
 
+static inline void newton_1x1(struct universe *u, size_t row, size_t column) {
+	struct body *p1 = &u->bodies[row];
+	struct body *p2 = &u->bodies[column];
+
+	// Newton's law of universal gravitation
+	vec4f d  = _mm256_cvtpd_ps(p2->pos - p1->pos);
+	vec4f d2 = d * d;
+	vec4f dist2 = veccastf(d2[0]+d2[1]+d2[2]);
+	vec4f ai = veccastf(G) / (dist2 * _mm_sqrt_ps(dist2));
+	vec4f da = ai * d;
+
+	p1->acc += da * veccastf(p2->mass);
+	p2->acc -= da * veccastf(p1->mass);
+}
 
 
 static inline void compute_accelerations(struct	universe *universe) {
-	// clear accelerations
-	for(size_t planet = 0; planet < universe->num_planets; planet++)
-		universe->planets[planet].acc = (vec4f) { 0., 0., 0., 0. };
+	// compute accelerations for the largest possible blocks
+	for(size_t row = 1; row < universe->num_bodies; row++) {
+		size_t column = 0;
 
-	// accumulate accelerations
-	for(size_t row = 1; row < universe->num_planets; row++) {
-		struct planet *p1 = &universe->planets[row];
-		size_t column;
-		column = 0;
 		if(row > 3) {
 			for(; column < row-3; column += 4) {
 				if(row%2 == 0) {
@@ -142,36 +153,30 @@ static inline void compute_accelerations(struct	universe *universe) {
 		}
 
 		for(; column < row; column++) {
-			struct planet *p2 = &universe->planets[column];
-
-			// Newton's law of universal gravitation
-			vec4f d  = _mm256_cvtpd_ps(p2->pos - p1->pos);
-			vec4f d2 = d * d;
-			vec4f dist2 = veccastf(d2[0]+d2[1]+d2[2]);
-			vec4f ai = veccastf(G) / (dist2 * _mm_sqrt_ps(dist2));
-			vec4f da = ai * d;
-
-			p1->acc += da * veccastf(p2->mass);
-			p2->acc -= da * veccastf(p1->mass);
+			newton_1x1(universe, row, column);
 		}
 	}
 }
 
 void universe_step(struct universe *universe, double dt) {
+	// clear accelerations
+	for(size_t body = 0; body < universe->num_bodies; body++)
+		universe->bodies[body].acc = (vec4f) { 0., 0., 0., 0. };
+
 	compute_accelerations(universe);
 
-	for(size_t planet = 0; planet < universe->num_planets; planet++) {
-		struct planet *p = &universe->planets[planet];
+	for(size_t body = 0; body < universe->num_bodies; body++) {
+		struct body *p = &universe->bodies[body];
 		p->vel += _mm256_cvtps_pd(p->acc) * veccastd(dt);
 		p->pos += p->vel * veccastd(dt);
 	}
 /*
-	// normalize everything so the first planet is in the middle again
+	// normalize everything so the first body is in the middle again
 	{
-		vec4 firstpos = universe->planets[0].pos;
-		vec4 firstvel = universe->planets[0].vel;
-		for(size_t planet = 0; planet < universe->num_planets; planet++) {
-			struct planet *p = &universe->planets[planet];
+		vec4 firstpos = universe->bodies[0].pos;
+		vec4 firstvel = universe->bodies[0].vel;
+		for(size_t body = 0; body < universe->num_bodies; body++) {
+			struct body *p = &universe->bodies[body];
 			p->pos -= firstpos;
 			p->vel -= firstvel;
 		}

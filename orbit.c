@@ -23,15 +23,15 @@ int main(__attribute__((unused)) int argc, __attribute__((unused))char **argv) {
 	// read data file
 	fprintf(stderr, "Loading universe file %s...\n", UNIVERSE_FILE);
 	struct universe *universe = universe_load(UNIVERSE_FILE);
-	fprintf(stderr, "Loaded %zd planets:\n", universe->num_planets);
+	fprintf(stderr, "Loaded %zd bodies:\n", universe->num_bodies);
 
 	fprintf(stderr, "Initial state:\n");
 	universe_dump(stderr, universe);
 
 	// data buffer
 	fprintf(stderr, "Allocating data buffer...\n");
-	size_t num_pstate = universe->num_planets * NUM_ITERATIONS/OUTPUT_INTERVAL;
-	struct pstate *history = aligned_alloc(PLANET_ALIGN, num_pstate * sizeof(struct pstate));
+	size_t num_pstate = universe->num_bodies * NUM_ITERATIONS/OUTPUT_INTERVAL;
+	struct pstate *history = aligned_alloc(BODY_ALIGN, num_pstate * sizeof(struct pstate));
 
 	fprintf(stderr, "Starting run...\n");
 	
@@ -42,13 +42,13 @@ int main(__attribute__((unused)) int argc, __attribute__((unused))char **argv) {
 		universe_step(universe, DT);
 
 		if(i%OUTPUT_INTERVAL==0) {
-			for(size_t planet = 0; planet < universe->num_planets; planet++) {
-				struct planet *p = &universe->planets[planet];
-				size_t idx = (i/OUTPUT_INTERVAL)*universe->num_planets + planet;
+			for(size_t body = 0; body < universe->num_bodies; body++) {
+				struct body *p = &universe->bodies[body];
+				size_t idx = (i/OUTPUT_INTERVAL)*universe->num_bodies + body;
 				struct pstate *curstate = &history[idx];
 
 				curstate->time  = universe->time;
-				curstate->index = planet;
+				curstate->index = body;
 				curstate->pos   = p->pos;
 			}
 		}

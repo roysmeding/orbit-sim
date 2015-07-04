@@ -5,33 +5,33 @@
 
 #include "universe.h"
 
-void planet_init(struct planet *planet, char *name, double mass, double radius, double x, double y, double z, double vx, double vy, double vz) {
-	planet->name   = name;
-	planet->mass   = mass;
-	planet->radius = radius;
+void init(struct body *body, char *name, double mass, double radius, double x, double y, double z, double vx, double vy, double vz) {
+	body->name   = name;
+	body->mass   = mass;
+	body->radius = radius;
 
-	planet->pos[0] =  x, planet->pos[1] =  y, planet->pos[2] =  z, planet->pos[3] = 0.;
-	planet->vel[0] = vx, planet->vel[1] = vy, planet->vel[2] = vz, planet->vel[3] = 0.;
+	body->pos[0] =  x, body->pos[1] =  y, body->pos[2] =  z, body->pos[3] = 0.;
+	body->vel[0] = vx, body->vel[1] = vy, body->vel[2] = vz, body->vel[3] = 0.;
 }
 
-struct universe *universe_new(size_t num_planets, double time) {
-	struct universe *universe = aligned_alloc(PLANET_ALIGN, sizeof(struct universe));
+struct universe *universe_new(size_t num_bodies, double time) {
+	struct universe *universe = aligned_alloc(BODY_ALIGN, sizeof(struct universe));
 	universe->time = time;
-	universe->num_planets = num_planets;
-	universe->planets = aligned_alloc(PLANET_ALIGN, num_planets * sizeof(struct planet));
+	universe->num_bodies = num_bodies;
+	universe->bodies = aligned_alloc(BODY_ALIGN, num_bodies * sizeof(struct body));
 
 	return universe;
 }
 
 void universe_free(struct universe *universe) {
-	for(size_t planet = 0; planet < universe->num_planets; planet++)
-		free(universe->planets[planet].name);
-	free(universe->planets);
+	for(size_t body = 0; body < universe->num_bodies; body++)
+		free(universe->bodies[body].name);
+	free(universe->bodies);
 	free(universe);
 }
 
 struct universe *universe_load(const char* filename) {
-	size_t num_planets;
+	size_t num_bodies;
 	struct universe *universe;
 	struct tm tm;
 
@@ -41,11 +41,11 @@ struct universe *universe_load(const char* filename) {
 			&tm.tm_hour, &tm.tm_min, &tm.tm_sec
 		);
 
-	fscanf(infile, "%zu\n", &num_planets);
+	fscanf(infile, "%zu\n", &num_bodies);
 
-	universe = universe_new(num_planets, (double) mktime(&tm));
+	universe = universe_new(num_bodies, (double) mktime(&tm));
 
-	for(size_t planet = 0; planet < num_planets; planet++) {
+	for(size_t body = 0; body < num_bodies; body++) {
 		int c;
 		char *name;
 		double mass, radius;
@@ -68,7 +68,7 @@ struct universe *universe_load(const char* filename) {
 				&vx, &vy, &vz
 			);
 
-		planet_init(&universe->planets[planet],
+		init(&universe->bodies[body],
 				name,
 				mass, radius,
 				x, y, z,
@@ -91,13 +91,13 @@ void universe_dump(FILE *dest, struct universe *universe) {
 			 "x [AU]",    "y [AU]",    "z [AU]",
 			"vx [AU/d]", "vy [AU/d]", "vz [AU/d]"
 	       );
-	for(size_t planet = 0; planet < universe->num_planets; planet++) {
-		struct planet *p = &universe->planets[planet];
+	for(size_t body = 0; body < universe->num_bodies; body++) {
+		struct body *p = &universe->bodies[body];
 		fprintf(dest, "\t%2zd." " %-10s"
 				"\t%12.6le"  "\t%12.6le"
 				"\t% 22.15le" "\t% 22.15le" "\t% 22.15le"
 				"\t% 22.15le" "\t% 22.15le" "\t% 22.15le" "\n",
-				planet+1, p->name,
+				body+1, p->name,
 				p->mass, p->radius,
 				p->pos[0], p->pos[1], p->pos[2],
 				p->vel[0], p->vel[1], p->vel[2]
