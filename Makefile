@@ -8,14 +8,9 @@ CFLAGS += -march=native
 all : orbit
 
 clean :
-	rm -f orbit test_universe
+	rm -f orbit
 
-tests : test_universe
-
-.PHONY: all clean tests
+.PHONY: all clean
 
 orbit : orbit.c universe.h universe.c sim.c
 	${CC} ${CFLAGS} -o $@ orbit.c universe.c sim.c -lm
-
-test_universe : test_universe.c universe.h universe.c sim.c
-	${CC} ${CFLAGS} -o $@ test_universe.c universe.c sim.c -lm
